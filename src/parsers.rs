@@ -1,6 +1,6 @@
 use crate::Version;
 use nom::bytes::complete::tag;
-use nom::character::complete::{char, digit1};
+use nom::character::complete::{char, digit1, space0, space1};
 use nom::combinator::map_res;
 use nom::sequence::tuple;
 use nom::IResult;
@@ -37,16 +37,31 @@ pub fn parse_version_numbers(input: &str) -> IResult<&str, Version> {
     ))
 }
 
-/// Parse the version in the output of the command `chromedriver --version`.
-/// Example: `ChromeDriver 89.0.4389.23 (61b08ee2c50024bab004e48d2b1b083cdbdac579-refs/branch-heads/4389@{#294})`
-pub fn parse_chromedriver_version_output(input: &str) -> IResult<&str, Version> {
-    let (input, _) = tag("ChromeDriver ")(input)?;
+pub fn parse_version_output<'a>(input: &'a str, application: &'a str) -> IResult<&'a str, Version> {
+    let (input, _) = tag(application)(input)?;
+    let (input, _) = space0(input)?;
 
     parse_version_numbers(input)
 }
 
+/// Parse the version in the output of the command `chromedriver --version`.
+/// Example: `ChromeDriver 89.0.4389.23 (61b08ee2c50024bab004e48d2b1b083cdbdac579-refs/branch-heads/4389@{#294})`
+pub fn parse_chromedriver_version_output(input: &str) -> IResult<&str, Version> {
+    parse_version_output(input, "ChromeDriver")
+}
+
+#[cfg(not(target_os = "windows"))]
 pub fn parse_chromium_version_output(input: &str) -> IResult<&str, Version> {
-    let (input, _) = tag("Google Chrome ")(input)?;
+    parse_version_output(input, "Google Chrome")
+}
+
+pub fn parse_version_from_register(input: &str) -> IResult<&str, Version> {
+    let (input, _) = tag("\r\nHKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon\r\n")(input)?;
+    let (input, _) = space1(input)?;
+    let (input, _) = tag("version")(input)?;
+    let (input, _) = space1(input)?;
+    let (input, _) = tag("REG_SZ")(input)?;
+    let (input, _) = space1(input)?;
 
     parse_version_numbers(input)
 }
