@@ -71,7 +71,9 @@ pub fn parse_version_from_register(input: &str) -> IResult<&str, Version> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::{parse_chromedriver_version_output, parse_chromium_version_output};
+    use crate::parsers::parse_chromedriver_version_output;
+    #[cfg(not(target_os = "windows"))]
+    use crate::parsers::parse_chromium_version_output;
     use crate::Version;
     use nom::Finish;
     use test_case::test_case;
@@ -86,6 +88,7 @@ mod tests {
         assert_eq!(expected, result);
     }
 
+    #[cfg(not(target_os = "windows"))]
     #[test_case("Google Chrome 109.0.5414.87", Some(Version::new(109, 0, 5414, 87)) ; "basic")]
     fn test_parse_browser_version_output(input: &str, expected: Option<Version>) {
         let result = parse_chromium_version_output(input)
