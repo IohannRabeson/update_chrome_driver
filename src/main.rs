@@ -146,7 +146,7 @@ where
 
 #[cfg(not(target_os = "windows"))]
 fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
-    let stdout = run_program(program_path)?;
+    let stdout = run_program(program_path, ["--version"])?;
 
     parsers::parse_chromium_version_output(&stdout)
         .map_err(|error| Error::ParsingVersionFailed(error.to_string()))

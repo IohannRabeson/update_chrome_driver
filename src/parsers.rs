@@ -1,6 +1,6 @@
 use crate::Version;
 use nom::bytes::complete::tag;
-use nom::character::complete::{char, digit1, space0, space1};
+use nom::character::complete::{char, digit1, space0};
 use nom::combinator::map_res;
 use nom::sequence::tuple;
 use nom::IResult;
@@ -55,7 +55,10 @@ pub fn parse_chromium_version_output(input: &str) -> IResult<&str, Version> {
     parse_version_output(input, "Google Chrome")
 }
 
+#[cfg(target_os = "windows")]
 pub fn parse_version_from_register(input: &str) -> IResult<&str, Version> {
+    use nom::character::complete::space1;
+
     let (input, _) = tag("\r\nHKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon\r\n")(input)?;
     let (input, _) = space1(input)?;
     let (input, _) = tag("version")(input)?;
