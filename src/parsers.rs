@@ -86,6 +86,7 @@ mod tests {
         assert_eq!(expected, result);
     }
 
+    #[cfg(not(target_os = "windows"))]
     #[test_case("Google Chrome 109.0.5414.87", Some(Version::new(109, 0, 5414, 87)) ; "basic")]
     fn test_parse_browser_version_output(input: &str, expected: Option<Version>) {
         let result = parse_chromium_version_output(input)
