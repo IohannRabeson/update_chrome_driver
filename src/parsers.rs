@@ -58,7 +58,7 @@ mod tests {
     use nom::Finish;
     use test_case::test_case;
 
-    #[test_case("ChromeDriver 89.0.4389.23 (61b08ee2c50024bab004e48d2b1b083cdbdac579-refs/branch-heads/4389@{#294})", Some(VersionNumbers::new(89, 0, 4389, 23)) ; "basic")]
+    #[test_case("ChromeDriver 89.0.4389.23 (61b08ee2c50024bab004e48d2b1b083cdbdac579-refs/branch-heads/4389@{#294})", Some(Version::new(89, 0, 4389, 23)) ; "basic")]
     fn test_parse_driver_version_output(input: &str, expected: Option<Version>) {
         let result = parse_chromedriver_version_output(input)
             .finish()
@@ -68,7 +68,7 @@ mod tests {
         assert_eq!(expected, result);
     }
 
-    #[test_case("Google Chrome 109.0.5414.87", Some(VersionNumbers::new(109, 0, 5414, 87)) ; "basic")]
+    #[test_case("Google Chrome 109.0.5414.87", Some(Version::new(109, 0, 5414, 87)) ; "basic")]
     fn test_parse_browser_version_output(input: &str, expected: Option<Version>) {
         let result = parse_chromium_version_output(input)
             .finish()
