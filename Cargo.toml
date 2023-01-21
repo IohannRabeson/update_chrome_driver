@@ -1,0 +1,17 @@
+[package]
+name = "update_chrome_driver"
+description = "Update chromedriver executable if needed."
+version = "1.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.11", features = ["blocking"] }
+nom = "7"
+thiserror = "1"
+zip = "0.6"
+
+[dev-dependencies]
+test-case = "2.2.2"
