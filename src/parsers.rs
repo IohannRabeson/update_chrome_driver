@@ -56,15 +56,8 @@ pub fn parse_chromium_version_output(input: &str) -> IResult<&str, Version> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn parse_version_from_register(input: &str) -> IResult<&str, Version> {
-    use nom::character::complete::space1;
-
-    let (input, _) = tag("\r\nHKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon\r\n")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, _) = tag("version")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, _) = tag("REG_SZ")(input)?;
-    let (input, _) = space1(input)?;
+pub fn parse_wmic_version(input: &str) -> IResult<&str, Version> {
+    let (input, _) = tag("\r\r\n\r\r\nVersion=")(input)?;
 
     parse_version_numbers(input)
 }
