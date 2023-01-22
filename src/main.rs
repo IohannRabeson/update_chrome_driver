@@ -1,11 +1,10 @@
 ///! Downloads the correct version of chromedriver regarding the version of the local Chrome.
 ///! Basically the rust implementation of https://chromedriver.chromium.org/downloads/version-selection.
-
 use clap::Parser;
+use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::ffi::{OsStr};
 
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
@@ -16,7 +15,13 @@ fn main() -> Result<(), Error> {
     let require_update = must_update(&local_driver_version, &required_chrome_driver_version);
 
     println!("Required version: {}", required_chrome_driver_version);
-    println!("Current version: {}", local_driver_version.as_ref().map(ToString::to_string).unwrap_or_else(||String::from("None")));
+    println!(
+        "Current version: {}",
+        local_driver_version
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| String::from("None"))
+    );
     println!("Require update: {}", require_update);
 
     if must_update(&local_driver_version, &required_chrome_driver_version) {
@@ -92,7 +97,7 @@ enum Error {
     RequestFailed(#[from] reqwest::Error),
 
     #[error(transparent)]
-    ZipExtractionFailed(#[from]zip::result::ZipError),
+    ZipExtractionFailed(#[from] zip::result::ZipError),
 }
 
 fn must_update(current_version: &Option<Version>, new_version: &Version) -> bool {
@@ -100,7 +105,7 @@ fn must_update(current_version: &Option<Version>, new_version: &Version) -> bool
         return current_version.major < new_version.major
             || current_version.minor < new_version.minor
             || current_version.build < new_version.build
-            || current_version.patch < new_version.patch
+            || current_version.patch < new_version.patch;
     }
 
     true
@@ -116,11 +121,15 @@ fn download_and_extract(url: &str, output_directory: &Path) -> Result<(), Error>
 }
 
 fn get_download_url(required_version: &Version, platform: Platform) -> String {
-    format!("https://chromedriver.storage.googleapis.com/{}.{}.{}.{}/chromedriver_{}.zip",
-            required_version.major, required_version.minor, required_version.build, required_version.patch,
-            platform.get_key())
+    format!(
+        "https://chromedriver.storage.googleapis.com/{}.{}.{}.{}/chromedriver_{}.zip",
+        required_version.major,
+        required_version.minor,
+        required_version.build,
+        required_version.patch,
+        platform.get_key()
+    )
 }
-
 
 fn run_program<I, S>(program_path: &Path, arguments: I) -> Result<String, Error>
 where
@@ -154,10 +163,17 @@ fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
 /// See https://bugs.chromium.org/p/chromium/issues/detail?id=158372
 #[cfg(target_os = "windows")]
 fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
-    let stdout = run_program(Path::new("C:\\Windows\\System32\\wbem\\WMIC.exe"), [
-        "datafile", "where", &format!("name={:?}", program_path.display()),
-        "get", "Version", "/value"
-    ])?;
+    let stdout = run_program(
+        Path::new("C:\\Windows\\System32\\wbem\\WMIC.exe"),
+        [
+            "datafile",
+            "where",
+            &format!("name={:?}", program_path.display()),
+            "get",
+            "Version",
+            "/value",
+        ],
+    )?;
 
     parsers::parse_wmic_version(&stdout)
         .map_err(|error| Error::ParsingVersionFailed(error.to_string()))
@@ -180,11 +196,14 @@ fn get_required_driver_version(chrome_version: &Version) -> Result<Version, Erro
         .map(|(_, version)| version)
 }
 
-fn get_local_driver_version(driver_directory: &Path, platform: Platform) -> Result<Option<Version>, Error> {
+fn get_local_driver_version(
+    driver_directory: &Path,
+    platform: Platform,
+) -> Result<Option<Version>, Error> {
     let program_path = driver_directory.join(platform.get_chromedriver_executable_name());
 
     if !program_path.exists() {
-        return Ok(None)
+        return Ok(None);
     }
 
     let stdout = run_program(&program_path, ["--version"])?;
