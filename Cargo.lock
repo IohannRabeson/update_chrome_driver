@@ -1232,7 +1232,7 @@ dependencies = [
 
 [[package]]
 name = "update_chrome_driver"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "clap",
  "nom",

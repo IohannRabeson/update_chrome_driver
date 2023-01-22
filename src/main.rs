@@ -1,8 +1,7 @@
-use std::ffi::OsStr;
 ///! Downloads the correct version of chromedriver regarding the version of the local Chrome.
 ///! Basically the rust implementation of https://chromedriver.chromium.org/downloads/version-selection.
-
 use clap::Parser;
+use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
@@ -10,16 +9,19 @@ use std::path::{Path, PathBuf};
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     let platform = Platform::default();
-    #[cfg(not(target_os = "windows"))]
     let chrome_version = get_local_browser_version(&cli.chrome_browser_path)?;
-    #[cfg(target_os = "windows")]
-    let chrome_version = get_local_browser_version()?;
     let required_chrome_driver_version = get_required_driver_version(&chrome_version)?;
     let local_driver_version = get_local_driver_version(&cli.output_directory, platform)?;
     let require_update = must_update(&local_driver_version, &required_chrome_driver_version);
 
     println!("Required version: {}", required_chrome_driver_version);
-    println!("Current version: {}", local_driver_version.as_ref().map(ToString::to_string).unwrap_or_else(||String::from("None")));
+    println!(
+        "Current version: {}",
+        local_driver_version
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| String::from("None"))
+    );
     println!("Require update: {}", require_update);
 
     if must_update(&local_driver_version, &required_chrome_driver_version) {
@@ -35,7 +37,6 @@ fn main() -> Result<(), Error> {
 
 #[derive(Parser)]
 struct Cli {
-    #[cfg(not(target_os = "windows"))]
     /// The location of the local Google Chrome executable.
     pub chrome_browser_path: PathBuf,
 
@@ -96,7 +97,7 @@ enum Error {
     RequestFailed(#[from] reqwest::Error),
 
     #[error(transparent)]
-    ZipExtractionFailed(#[from]zip::result::ZipError),
+    ZipExtractionFailed(#[from] zip::result::ZipError),
 }
 
 fn must_update(current_version: &Option<Version>, new_version: &Version) -> bool {
@@ -104,7 +105,7 @@ fn must_update(current_version: &Option<Version>, new_version: &Version) -> bool
         return current_version.major < new_version.major
             || current_version.minor < new_version.minor
             || current_version.build < new_version.build
-            || current_version.patch < new_version.patch
+            || current_version.patch < new_version.patch;
     }
 
     true
@@ -120,11 +121,15 @@ fn download_and_extract(url: &str, output_directory: &Path) -> Result<(), Error>
 }
 
 fn get_download_url(required_version: &Version, platform: Platform) -> String {
-    format!("https://chromedriver.storage.googleapis.com/{}.{}.{}.{}/chromedriver_{}.zip",
-            required_version.major, required_version.minor, required_version.build, required_version.patch,
-            platform.get_key())
+    format!(
+        "https://chromedriver.storage.googleapis.com/{}.{}.{}.{}/chromedriver_{}.zip",
+        required_version.major,
+        required_version.minor,
+        required_version.build,
+        required_version.patch,
+        platform.get_key()
+    )
 }
-
 
 fn run_program<I, S>(program_path: &Path, arguments: I) -> Result<String, Error>
 where
@@ -136,6 +141,7 @@ where
     if !program_path.exists() {
         return Err(Error::ProgramDoesNotExist(program_path.to_path_buf()));
     }
+
     let output = Command::new(program_path)
         .args(arguments)
         .output()
@@ -153,17 +159,30 @@ fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
         .map(|(_, version)| version)
 }
 
-// On Windows Chrome.exe seems to ignore all the arguments passed to the command line.
-// Found this hackish way on stackoverflow..
-// https://stackoverflow.com/questions/50880917/how-to-get-chrome-version-using-command-prompt-in-windows
+/// On Windows, Google Chrome ignore the flag --version or --product-version
+/// See https://bugs.chromium.org/p/chromium/issues/detail?id=158372
 #[cfg(target_os = "windows")]
-fn get_local_browser_version() -> Result<Version, Error> {
-    let stdout = run_program(Path::new("C:\\Windows\\System32\\reg.exe") , ["query", "HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon", "/v", "version"])?;
+fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
+    let stdout = run_program(
+        Path::new("C:\\Windows\\System32\\wbem\\WMIC.exe"),
+        [
+            "datafile",
+            "where",
+            &format!("name={:?}", program_path.display()),
+            "get",
+            "Version",
+            "/value",
+        ],
+    )?;
 
-    parsers::parse_version_from_register(&stdout)
+    parsers::parse_wmic_version(&stdout)
         .map_err(|error| Error::ParsingVersionFailed(error.to_string()))
         .map(|(_, version)| version)
 }
+
+// On Windows Chrome.exe seems to ignore all the arguments passed to the command line.
+// Found this hackish way on stackoverflow..
+// https://stackoverflow.com/questions/50880917/how-to-get-chrome-version-using-command-prompt-in-windows
 
 fn get_required_driver_version(chrome_version: &Version) -> Result<Version, Error> {
     let url = format!(
@@ -177,11 +196,14 @@ fn get_required_driver_version(chrome_version: &Version) -> Result<Version, Erro
         .map(|(_, version)| version)
 }
 
-fn get_local_driver_version(driver_directory: &Path, platform: Platform) -> Result<Option<Version>, Error> {
+fn get_local_driver_version(
+    driver_directory: &Path,
+    platform: Platform,
+) -> Result<Option<Version>, Error> {
     let program_path = driver_directory.join(platform.get_chromedriver_executable_name());
 
     if !program_path.exists() {
-        return Ok(None)
+        return Ok(None);
     }
 
     let stdout = run_program(&program_path, ["--version"])?;
