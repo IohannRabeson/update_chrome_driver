@@ -150,6 +150,8 @@ fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
         .map(|(_, version)| version)
 }
 
+/// On Windows, Google Chrome ignore the flag --version or --product-version
+/// See https://bugs.chromium.org/p/chromium/issues/detail?id=158372
 #[cfg(target_os = "windows")]
 fn get_local_browser_version(program_path: &Path) -> Result<Version, Error> {
     let stdout = run_program(Path::new("C:\\Windows\\System32\\wbem\\WMIC.exe"), [
