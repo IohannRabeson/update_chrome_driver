@@ -14,4 +14,4 @@ thiserror = "1"
 zip = "0.6"
 
 [dev-dependencies]
-test-case = "2.2.2"
+test-case = "3.0.0"
